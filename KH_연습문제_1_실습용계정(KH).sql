@@ -44,7 +44,7 @@ WHERE SALARY >= 4000000 AND JOB_CODE = 'J2';
 --     고용일이 02년 1월 1일보다 빠른 사원의 이름, 부서코드, 고용일 조회
 SELECT EMP_NAME 이름, DEPT_CODE 부서코드, HIRE_DATE 고용일
 FROM employee
-WHERE DEPT_CODE IN ('D5', 'D9') AND HIRE_DATE <= '02/01/01';
+WHERE DEPT_CODE IN ('D5', 'D9') AND HIRE_DATE < '02/01/01';
 
 -- 11. EMPLOYEE테이블에 고용일이 90/01/01 ~ 01/01/01인 사원의 전체 내용을 조회
 SELECT *
