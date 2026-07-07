@@ -85,8 +85,8 @@ ORDER BY 부서코드, 직급코드;
 
 SELECT DEPT_CODE 부서코드, JOB_CODE 직급코드, SUM(SALARY) "급여 총 합",
         CASE 
-            WHEN GROUPING(DEPT_CODE) = 0 AND GROUPING(JOB_CODE) = 1 THEN '직급별 합계'
-            WHEN GROUPING(DEPT_CODE) = 1 AND GROUPING(JOB_CODE) = 0 THEN '부서별 합계'
+            WHEN GROUPING(DEPT_CODE) = 0 AND GROUPING(JOB_CODE) = 1 THEN '부서별 합계'
+            WHEN GROUPING(DEPT_CODE) = 1 AND GROUPING(JOB_CODE) = 0 THEN '직급별 합계'
             WHEN GROUPING(DEPT_CODE) = 1 AND GROUPING(JOB_CODE) = 1 THEN '총 합계'
             ELSE '부서내 직급별 합계'
         END 구분
