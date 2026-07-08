@@ -1,0 +1,41 @@
+-- ** KH 연습문제 **
+-- 1. 각 부서별 사원 수를 조회
+SELECT DEPT_CODE, COUNT(*)
+FROM employee
+GROUP BY DEPT_CODE
+ORDER BY DEPT_CODE;
+
+-- 2. 각 직급별 총 급여 합계 조회
+SELECT JOB_CODE, SUM(SALARY)
+FROM employee
+GROUP BY JOB_CODE;
+
+-- 3. 각 부서별 평균 급여 조회
+SELECT DEPT_CODE, ROUND(AVG(SALARY)) SALARY_AVG
+FROM employee
+GROUP BY DEPT_CODE;
+
+-- 4. 부서 평균 급여가 300만원 이상인 부서 정보 조회 (부서코드, 평균 급여)
+SELECT DEPT_CODE, ROUND(AVG(SALARY)) SALARY_AVG
+FROM employee
+GROUP BY DEPT_CODE
+HAVING ROUND(AVG(SALARY)) >= 3000000;
+
+-- 5. 2000년 1월 1일 이후 입사한 사원들을 대상으로 각 부서별 사원 수 조회
+SELECT DEPT_CODE, COUNT(*)
+FROM employee
+WHERE HIRE_DATE > '00/01/01'
+GROUP BY DEPT_CODE
+ORDER BY DEPT_CODE;
+
+-- 6. 부서별 최고 급여가 400만원 이상인 부서 정보 조회
+SELECT DEPT_CODE, MAX(SALARY)
+FROM employee
+GROUP BY DEPT_CODE
+HAVING MAX(SALARY) >= 4000000;
+
+-- 7. 각 사수별 관리 중인 사원 수 조회 (* 사수번호: MANAGER_ID)
+SELECT MANAGER_ID, COUNT(*)
+FROM employee
+WHERE MANAGER_ID IS NOT NULL
+GROUP BY MANAGER_ID;
