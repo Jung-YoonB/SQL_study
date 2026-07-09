@@ -244,7 +244,239 @@ CREATE TABLE MEMBER_FRK (
 INSERT INTO MEMBER_FRK VALUES (1, 'qwert', '1234', '홍길동', '남', SYSDATE, 100);
 INSERT INTO MEMBER_FRK VALUES (2, 'qwert12', '1234', '김길동', '남', SYSDATE, 300);
 INSERT INTO MEMBER_FRK VALUES (3, 'qwe234', '1234', '왕길동', '남', SYSDATE, NULL);
+--> 부모 테이블에 존재하는 값, NULL인 경우 추가
 
 INSERT INTO MEMBER_FRK VALUES (4, 'qwe4', '1234', '고길동', '남', SYSDATE, 400);
+--> 부모 테이블에 존재하지 않는 값으로 입력 시 추가 실패, 오류 발생
 
 SELECT * FROM MEMBER_FRK;
+--------------------------------------------------------------------------------
+
+-- 회원 등급(MEMBER_GRADE) 테이블에서 등급 번호가 100번인 데이터를 삭제
+DELETE FROM MEMBER_GRADE WHERE GRADE_NO = 100;
+--> 자식 테이블 (MEMBER_FRK)에서 100번이 입력되었으므로, 부모테이블에 삭제 불가 (RESTRICTED)
+
+-- 회원 등급(MEMBER_GRADE) 테이블에서 등급 번호가 200번 데이터를 삭제 -> 자식테이블에서 사용하지 않고 있음!
+DELETE FROM MEMBER_GRADE WHERE GRADE_NO = 200;
+--> 자식 테이블에서 참조하고 있지 않은 데이터는 자유롭게 삭제가 가능!
+
+ROLLBACK;   -- 변경 사항 취소
+
+SELECT * FROM MEMBER_GRADE;
+--------------------------------------------------------------------------------
+/*
+    * 삭제 옵션 : ON DELETE SET NULL
+        - 부모 테이블에서 참조되고 있는 행이 삭제될 때, 자식 테이블의 외래키 값을 자동으로 NULL로 변경(데이터 삭제)
+        - 자식 테이블의 데이터는 유지하고, 관계만 정리할 때 사용
+*/
+DROP TABLE MEMBER_FRK;
+
+CREATE TABLE MEMBER_FRK (
+    MEM_NO NUMBER PRIMARY KEY,
+    MEM_ID VARCHAR2(20) NOT NULL UNIQUE,
+    MEM_PWD VARCHAR2(20) NOT NULL,
+    MEM_NAME VARCHAR2(20) NOT NULL,
+    GENDER CHAR(3) CHECK(GENDER IN ('남', '여')),
+    ENROLLDATE DATE,
+    GRADE_ID NUMBER REFERENCES MEMBER_GRADE(GRADE_NO) ON DELETE SET NULL
+    );
+
+INSERT INTO MEMBER_FRK VALUES(1, 'SAFD', 1234, '홍길동', '남', SYSDATE, 100);
+INSERT INTO MEMBER_FRK VALUES(2, 'FADS', 1234, '김길동', '남', SYSDATE, 300);
+
+SELECT * FROM MEMBER_FRK;
+
+DELETE FROM MEMBER_GRADE WHERE GRADE_NO = 100;
+--> 삭제 성공, 자식 테이블에서 참조 중이던 값은 NULL로 변경!
+
+ROLLBACK;
+--------------------------------------------------------------------------------
+/*
+    * 삭제 옵션 : ON DELETE CASCADE
+        - 부모 테이블에서 특정 행이 삭제 될 때, 이를 참조하고 있는 자식 테이블의 행도 같이 삭제 됨
+        - 부모 테이블과 자식 테이블이 종속 관계일 때 사용
+*/
+DROP TABLE MEMBER_FRK;
+
+CREATE TABLE MEMBER_FRK (
+    MEM_NO NUMBER PRIMARY KEY,
+    MEM_ID VARCHAR2(20) NOT NULL UNIQUE,
+    MEM_PWD VARCHAR2(20) NOT NULL,
+    MEM_NAME VARCHAR2(20) NOT NULL,
+    GENDER CHAR(3) CHECK(GENDER IN ('남', '여')),
+    ENROLLDATE DATE,
+    GRADE_ID NUMBER REFERENCES MEMBER_GRADE(GRADE_NO) ON DELETE CASCADE
+    );
+
+INSERT INTO MEMBER_FRK VALUES(1, 'SAFD', 1234, '홍길동', '남', SYSDATE, 100);
+INSERT INTO MEMBER_FRK VALUES(2, 'FADS', 1234, '김길동', '남', SYSDATE, 300);
+
+SELECT * FROM MEMBER_FRK;
+
+DELETE FROM MEMBER_GRADE WHERE GRADE_NO = 100;
+--> 자식 테이블에서 참조 중이었던 행 자체가 함께 삭제 됨
+ROLLBACK;
+--------------------------------------------------------------------------------
+/*
+    * 기본값 설정 : DEFAULT
+        - 데이터가 추가 될 때 입력하지 않은 컬럼의 값을 채워주기 위해 사용하는 옵션
+*/
+-- 회원(MEMBER_DEFAULT)
+CREATE TABLE MEMBER_DEFAULT (
+    MEM_NO NUMBER PRIMARY KEY,
+    MEM_NAME VARCHAR2(20) NOT NULL,
+    AGE NUMBER,
+    HOBBY VARCHAR2(30) DEFAULT '없음',
+    ENROLLDATE DATE DEFAULT SYSDATE
+);
+
+INSERT INTO MEMBER_DEFAULT VALUES (1, '홍길동', 20, '코딩', SYSDATE);
+INSERT INTO MEMBER_DEFAULT (MEM_NO, MEM_NAME, AGE) VALUES (2, '김길동', 20);
+--> 취미, 가입 일 컬럼은 입력되지 않아, 기본 값으로 데이터가 추가(저장) 됨
+
+INSERT INTO MEMBER_DEFAULT VALUES (3, '고길동', 20, NULL, NULL);
+--> 의도적으로 NULL값을 입력하게 되면 기본값이 아닌 NULL로 추가 됨
+
+SELECT * FROM MEMBER_DEFAULT;
+--------------------------------------------------------------------------------
+/*
+    * 테이블 복제 * (CTAS, CREATE TABLE AS SELECT)
+        - 기존에 구현되어 있는 다른 테이블의 구성과 데이터를 빠르게 가져와서 새로운 복제본 테이블을 만드는 문법
+        - 컬럼 크기, 자료형, 데이터 자체는 복제가 되지만 NOT NULL 외의 제약 조건은 복제 되지 않음
+
+        CREATE TABLE 테이블명
+        AS ( 서브 쿼리 );
+*/
+-- 직원 테이블 (EMPLOYEE)을 복제
+CREATE TABLE EMPLOYEE_COPY
+AS (
+    SELECT * FROM EMPLOYEE
+);
+
+SELECT * FROM employee_copy;
+
+-- 직원 정보 중 직원 번호, 이름, 급여만 별도의 테이블로 복제 (EMP_INFO)
+CREATE TABLE EMP_INFO
+AS (
+    SELECT EMP_ID, EMP_NAME, SALARY FROM employee
+);
+
+SELECT * FROM EMP_INFO;
+
+DROP TABLE EMP_INFO;
+-- 구조만 복제 => 조건 자체를 FALSE가 되도록 지정함
+CREATE TABLE EMP_INFO
+AS (
+    SELECT EMP_ID, EMP_NAME, SALARY FROM employee WHERE 1=0
+);
+--------------------------------------------------------------------------------
+/*
+    * ALTER : 구조 변경 시 사용 *
+        - ALTER TABLE ...
+            : 기존에 생성되어 있는 테이블의 컬럼, 제약 조건을 변경하는 구문
+              컬럼 추가/ 수정/ 삭제, 제약조건 추가/ 삭제
+*/
+-- * DEPT_TABLE 테이블 생성 (DEPT_ID 고정길이(5), DEPT_TITLE 가변길이(35))
+CREATE TABLE DEPT_TABLE (
+    DEPT_ID CHAR(5),
+    DEPT_TITLE VARCHAR2(35)
+);
+
+/*
+-- * 컬럼 추가
+    ALTER TABLE 테이블명 ADD 추가_할_컬럼명 데이터_타입 [DEFAULT 기본값] [제약조건];
+*/
+-- DEPT_TABLE 에 CNAME 가변길이(20) 컬럼 추가
+ALTER TABLE DEPT_TABLE ADD CNAME VARCHAR2(20);
+--      LNAME 가변길이(20) 기본값 '한국' 컬럼 추가
+ALTER TABLE DEPT_TABLE ADD LNAME VARCHAR2(20) DEFAULT '한국';
+
+/*
+    * 컬럼 변경
+    ALTER TABLE 테이블명 MODIFY 변경_할_컬럼명 [변경_할_데이터_타입] [DEFAULT 기본값]  
+*/
+-- DEPT_TABLE 의 ID 컬럼의 데이터 타입을 고정길이(10) 변경
+ALTER TABLE DEPT_TABLE MODIFY DEPT_ID CHAR(10);
+
+-- 여러 개의 컬럼을 한 번에 변경할 수 있음!
+--      TITLE 컬럼의 데이터 타입을 가변길이(55)
+--      LNAME 컬럼의 기본 값을 '코리아'로 변경
+ALTER TABLE DEPT_TABLE
+    MODIFY DEPT_TITLE VARCHAR2(55)
+    MODIFY LNAME DEFAULT '코리아';
+    
+/* 
+    * 컬럼 삭제
+    ALTER TABLE 테이블명 DROP COLUMN 컬럼명
+        => 삭제 후 복구가 불가능하므로 유의해야 함!!
+*/
+-- LNAME 컬럼 삭제
+ALTER TABLE DEPT_TABLE DROP COLUMN LNAME;
+
+/*
+    * 제약 조건 추가
+    ALTER TABLE 테이블명 ADD [CONSTRAINT 제약_조건_명] 제약조건(컬럼명) 
+*/
+-- DEPT_TABLE 의 ID 컬럼을 기본 키로 설정, 제약조건명:PK_DT
+ALTER TABLE DEPT_TABLE ADD CONSTRAINT PK_DT PRIMARY KEY(DEPT_ID);
+
+--      TITLE 컬럼을 중복 불가하도록 제한 제약조건명:UQ_DT
+ALTER TABLE DEPT_TABLE ADD CONSTRAINT UQ_DT UNIQUE(DEPT_TITLE);
+
+-- * NOT NULL => 기본값 : NULL 허용 / 변경으로 처리 ( MODIFY 컬럼명 NOT NULL)
+ALTER TABLE DEPT_TABLE MODIFY CNAME NOT NULL;
+
+/*
+    * 제약 조건 삭제 *
+    ALTER TABLE 테이블명 DROP CONSTRAINT 제약조건명;
+*/
+-- * 기본키 삭제
+ALTER TABLE DEPT_TABLE DROP CONSTRAINT PK_DT;
+
+-- * 유니크 제약조건 삭제
+ALTER TABLE DEPT_TABLE DROP CONSTRAINT UQ_DT;
+
+-- * NOT NULL 삭제...? --> NULL 로 변경
+ALTER TABLE DEPT_TABLE MODIFY CNAME NULL;
+--------------------------------------------------------------------------------
+/*
+    * 이름 변경하기 (컬럼, 제약조건, 테이블)
+    
+    ALTER TABLE 테이블명 RENAME COLUMN 기존_컬럼명 TO 변경_할_컬럼명
+    
+    ALTER TABLE 테이블명 RENAME COSTRAINT 기존_제약조건_명 TO 변경_할_제약조건_명
+    
+    ALTER TABLE 기존_테이블명 RENAME TO 변경_할_테이블명
+*/
+-- * 컬럼명 변경 (TITLE -> NAME)
+ALTER TABLE DEPT_TABLE RENAME COLUMN DEPT_TITLE TO DEPT_NAME;
+
+-- * 제약 조건 명 변경
+--      기본키 추가 (ID)
+ALTER TABLE DEPT_TABLE ADD PRIMARY KEY(DEPT_ID);
+--      추가한 제약 조건 명 : SYS_C008405
+--      변경 할 제약 조건 명 : PK_DT
+ALTER TABLE DEPT_TABLE RENAME CONSTRAINT SYS_C008405 TO PK_DT;
+
+-- * 테이블 명 변경 : TABLE -> TEST
+ALTER TABLE DEPT_TABLE RENAME TO DEPT_TEST;
+--------------------------------------------------------------------------------
+/*
+    * DROP : 구조를 삭제(제거)
+        DROP TABLE 테이블명 : 해당 테이블을 완전히 삭제
+*/
+-- * DEPT_TEST 테이블을 DEPT_COPY 테이블로 복제
+CREATE TABLE DEPT_COPY
+AS (
+    SELECT * FROM DEPT_TEST
+);
+
+-- * COPY 삭제
+DROP TABLE DEPT_COPY;
+
+-- MEMBER_GRADE 삭제
+DROP TABLE MEMBER_GRADE;
+--> 외래 키가 설정되어 있어 삭제 불가
+--> 관계 설정 상관 없이 삭제하고자 할 때 : CASCADE CONSTRAINTS 옵션 추가
+DROP TABLE MEMBER_GRADE CASCADE CONSTRAINTS;
+--> 항상 주의!!
